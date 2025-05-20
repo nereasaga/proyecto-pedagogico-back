@@ -1,0 +1,38 @@
+# Entornos virtuales
+myenv/
+venv/
+env/
+ENV/
+.env/
+.venv/
+virtualenv/
+
+# Archivos de caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Archivos de distribución
+dist/
+build/
+*.egg-info/
+
+# Archivos de configuración local
+instance/
+.webassets-cache
+.env
+
+# Archivos de registro
+*.log
+
+# Base de datos SQLite
+*.sqlite
+*.db
+
+# Archivos IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
