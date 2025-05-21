@@ -1,0 +1,18 @@
+1- Entra en cliente de postgreSQL y desde la linea de comandos crear la base de datos
+psql -U postgres
+CREATE DATABASE "employeeCalendar" ENCODING 'UTF8' LC_COLLATE 'es_ES.UTF-8' LC_CTYPE 'es_ES.UTF-8' TEMPLATE template0;
+2- ejecuta el script que crea todas las tablas y carga datos
+psql -U postgres -d "employeeCalendar" -f employeeCalendar.sql
+
+
+
+En caso de error eliminar la base de datos y volver a crearla.
+Para eliminar la base de datos:
+Entrar en el cliente de postgreSQL con:
+psql -U postgres
+si ya estas dentro asegurate de no estar dentro de la base de datos (ver el promt)
+Si estas dentro para salir : \q y volver a entrar
+para borra la base de datos desde la terminal de comandos de postgreSQL (u otro cliente):
+
+DROP DATABASE "employeeCalendar";
+
