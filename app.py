@@ -3,11 +3,13 @@ from flask import Flask, g
 from dotenv import load_dotenv
 from flask import render_template
 import os
+from flask_cors import CORS
 
 load_dotenv()
 
 app = Flask(__name__)
 app.config.from_object('config.Config')
+CORS(app)
 
 # Cierra conexión al final de la request
 @app.teardown_appcontext
