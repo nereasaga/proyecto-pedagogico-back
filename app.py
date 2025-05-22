@@ -1,33 +1,32 @@
-from flask import Flask, g # Importamos 'g' para almacenar la conexión
-import psycopg2
+# app.py
+from flask import Flask, g
 from dotenv import load_dotenv
+from flask import render_template
 import os
 
-# Cargar variables de entorno del archivo .env
 load_dotenv()
 
 app = Flask(__name__)
 app.config.from_object('config.Config')
 
-# --- Gestión de la Conexión a la Base de Datos ---
-def get_db_connection():
-    """Establece una conexión a la base de datos PostgreSQL."""
-    if 'db_conn' not in g:
-        g.db_conn = psycopg2.connect(app.config['DATABASE_URL'])
-    return g.db_conn
-
+# Cierra conexión al final de la request
 @app.teardown_appcontext
 def close_db_connection(exception):
-    """Cierra la conexión a la base de datos al finalizar la solicitud."""
+    from db import g  # Flask's global context
     db_conn = g.pop('db_conn', None)
-    if db_conn is not None:
+    if db_conn:
         db_conn.close()
-# --- Fin Gestión de la Conexión ---
 
+# Importa y registra blueprints
+from empleados.routes import empleados_bp
+from calendario.routes import calendario_bp
 
-# Importar las rutas (ahora no necesitamos importar modelos aquí, ya que las consultas se harán en las rutas)
-from routes import *
+app.register_blueprint(empleados_bp)
+app.register_blueprint(calendario_bp)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 if __name__ == '__main__':
-    # No necesitamos db.create_all() ya que no usamos SQLAlchemy
     app.run(debug=True)
