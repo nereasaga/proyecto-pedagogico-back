@@ -23,10 +23,15 @@ def close_db_connection(exception):
 from empleados.routes import empleados_bp
 from calendario.routes import calendario_bp
 from recursos.routes import recursos_bp
+from calendario.routes import festivos_bp
+
 
 app.register_blueprint(empleados_bp)
 app.register_blueprint(calendario_bp)
 app.register_blueprint(recursos_bp)
+app.register_blueprint(festivos_bp)
+
+
 
 @app.route('/')
 def index():
