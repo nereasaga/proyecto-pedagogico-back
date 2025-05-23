@@ -1,10 +1,17 @@
 from flask import Blueprint, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from db import execute_query
+from auth import permiso_requerido
 
 calendario_bp = Blueprint('calendario_bp', __name__)
 
 @calendario_bp.route('/api/calendario/<int:usuario_id>', methods=['GET'])
+@permiso_requerido
 def get_calendario_empleado(usuario_id):
+    """
+    Obtiene el calendario de un empleado específico
+    Requiere autenticación y permisos adecuados
+    """
     try:
         user_employee_query = """
             SELECT
@@ -19,7 +26,7 @@ def get_calendario_empleado(usuario_id):
         user_employee_data = execute_query(user_employee_query, (usuario_id,), fetch_one=True)
 
         if not user_employee_data or user_employee_data[1] is None:
-            return jsonify({"message": "Usuario no encontrado o no es un empleado con calendario"}), 404
+            return jsonify({"mensaje": "Usuario no encontrado o no es un empleado con calendario"}), 404
 
         nombre_empleado, empleado_id, centro_id = user_employee_data
 
