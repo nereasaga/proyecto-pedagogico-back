@@ -1,7 +1,9 @@
 from flask import Blueprint, jsonify, request
 from db import execute_query
+import bcrypt
 
 empleados_bp = Blueprint('empleados_bp', __name__) 
+
 
 @empleados_bp.route('/api/todosEmpleados', methods=['GET'])
 def get_empleados():
@@ -95,13 +97,19 @@ def create_empleado():
 
         if not all([nombre_completo, email, password_hash, rol_nombre, jornada_semanal, jornada_anual, dias_vacaciones]):
             return jsonify({"message": "Faltan datos obligatorios"}), 400
+        
+        # Hash de la contraseña
+        password_hash = bcrypt.hashpw(password_hash.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
+
+        # Buscar ID del rol
         rol_query = "SELECT id FROM roles WHERE nombre = %s;"
         rol_result = execute_query(rol_query, (rol_nombre,), fetch_one=True)
         if not rol_result:
             return jsonify({"message": f"Rol '{rol_nombre}' no válido"}), 400
         rol_id = rol_result[0]
-
+        
+        # Buscar ID del centro de trabajo (si aplica)
         centro_id = None
         if centro_nombre:
             centro_query = "SELECT id FROM centros_trabajo WHERE nombre = %s;"
@@ -109,7 +117,8 @@ def create_empleado():
             if not centro_result:
                 return jsonify({"message": f"Centro de trabajo '{centro_nombre}' no encontrado"}), 400
             centro_id = centro_result[0]
-
+            
+         # Insertar usuario
         insert_usuario = """
             INSERT INTO usuarios (nombre_completo, email, password_hash, rol_id, centro_id)
             VALUES (%s, %s, %s, %s, %s)
@@ -229,3 +238,42 @@ def delete_empleado(usuario_id):
         return jsonify({"message": "Empleado eliminado correctamente"})
     except Exception as e:
         return jsonify({"message": f"Error al eliminar empleado: {str(e)}"}), 500
+
+
+
+auth_bp = Blueprint('auth_bp', __name__)
+
+@auth_bp.route('/api/login', methods=['POST'])
+def login():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"message": "Datos JSON no proporcionados"}), 400
+
+        email = data.get('email')
+        password_input = data.get('password')
+        if not email or not password_input:
+            return jsonify({"message": "Email y contraseña requeridos"}), 400
+
+        # Buscar usuario por email
+        query = "SELECT id, nombre_completo, email, password_hash FROM usuarios WHERE email = %s;"
+        user = execute_query(query, (email,), fetch_one=True)
+
+        if not user:
+            return jsonify({"message": "Usuario no encontrado"}), 404
+
+        user_id, nombre, email_db, password_hash = user
+
+        # Verificar contraseña
+        if bcrypt.checkpw(password_input.encode('utf-8'), password_hash.encode('utf-8')):
+            return jsonify({
+                "message": "Inicio de sesión exitoso",
+                "usuario_id": user_id,
+                "nombre_completo": nombre,
+                "email": email_db
+            }), 200
+        else:
+            return jsonify({"message": "Contraseña incorrecta"}), 401
+
+    except Exception as e:
+        return jsonify({"message": f"Error en el inicio de sesión: {str(e)}"}), 500
