@@ -202,3 +202,42 @@ def add_new_festivo():
 
     except Exception as e:
         return jsonify({"message": f"Error al procesar la solicitud: {str(e)}"}), 500
+
+
+@festivos_bp.route('/api/festivos/<int:festivo_id>', methods=['GET'])
+def get_festivo_by_id(festivo_id):
+    """
+    Obtiene un día festivo específico por su ID.
+    """
+    try:
+        query = """
+            SELECT
+                f.fecha,
+                f.descripcion,
+                tf.nombre AS tipo_festivo_nombre,
+                f.centro_id
+            FROM
+                festivos f
+            JOIN
+                tipos_festivo tf ON f.tipo_festivo_id = tf.id
+            WHERE
+                f.id = %s;
+        """
+        festivo_data = execute_query(query, (festivo_id,), fetch_one=True)
+
+        if not festivo_data:
+            return jsonify({"message": "Día festivo no encontrado."}), 404
+
+        fecha, descripcion, tipo_nombre, centro_id_festivo = festivo_data
+        festivo = {
+            "id": festivo_id,
+            "fecha": str(fecha),
+            "descripcion": descripcion,
+            "tipo": tipo_nombre,
+            "centro_id_aplicable": centro_id_festivo
+        }
+
+        return jsonify(festivo), 200
+
+    except Exception as e:
+        return jsonify({"message": f"Error al obtener el día festivo: {str(e)}"}), 500
