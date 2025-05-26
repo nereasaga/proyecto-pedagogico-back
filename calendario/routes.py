@@ -203,6 +203,79 @@ def add_new_festivo():
     except Exception as e:
         return jsonify({"message": f"Error al procesar la solicitud: {str(e)}"}), 500
 
+@festivos_bp.route('/api/festivos/<int:festivo_id>', methods=['PUT'])
+def update_festivo(festivo_id):
+    """
+    Actualiza un día festivo existente en la base de datos.
+    Requiere 'fecha', 'descripcion', y 'tipo_festivo_id' en el cuerpo de la solicitud JSON.
+    'centro_id' es opcional.
+    """
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"message": "Se requiere un cuerpo de solicitud JSON."}), 400
+
+        fecha_str = data.get('fecha')
+        descripcion = data.get('descripcion')
+        tipo_festivo_id = data.get('tipo_festivo_id')
+        centro_id = data.get('centro_id')  # Opcional
+
+        if not all([fecha_str, descripcion, tipo_festivo_id]):
+            return jsonify({"message": "Faltan campos obligatorios: 'fecha', 'descripcion', 'tipo_festivo_id'."}), 400
+
+        try:
+            fecha = date.fromisoformat(fecha_str)
+        except ValueError:
+            return jsonify({"message": "Formato de fecha inválido. Use YYYY-MM-DD."}), 400
+
+        # Verifica existencia del festivo
+        festivo_exist_query = "SELECT id FROM festivos WHERE id = %s;"
+        if not execute_query(festivo_exist_query, (festivo_id,), fetch_one=True):
+            return jsonify({"message": f"El festivo con ID {festivo_id} no existe."}), 404
+
+        # Verifica tipo_festivo
+        tipo_check_query = "SELECT id FROM tipos_festivo WHERE id = %s;"
+        if not execute_query(tipo_check_query, (tipo_festivo_id,), fetch_one=True):
+            return jsonify({"message": f"El tipo_festivo_id {tipo_festivo_id} no existe."}), 404
+
+        # Verifica centro_id si se proporciona
+        if centro_id is not None:
+            centro_check_query = "SELECT id FROM centros_trabajo WHERE id = %s;"
+            if not execute_query(centro_check_query, (centro_id,), fetch_one=True):
+                return jsonify({"message": f"El centro_id {centro_id} no existe."}), 404
+
+        update_query = """
+            UPDATE festivos
+            SET fecha = %s, descripcion = %s, tipo_festivo_id = %s, centro_id = %s
+            WHERE id = %s;
+        """
+        execute_query(update_query, (fecha, descripcion, tipo_festivo_id, centro_id, festivo_id))
+
+        return jsonify({"message": "Día festivo actualizado correctamente."}), 200
+
+    except Exception as e:
+        return jsonify({"message": f"Error al actualizar el día festivo: {str(e)}"}), 500
+
+@festivos_bp.route('/api/festivos/<int:festivo_id>', methods=['DELETE'])
+def delete_festivo(festivo_id):
+    """
+    Elimina un día festivo existente en la base de datos por su ID.
+    """
+    try:
+        # Verifica existencia
+        festivo_exist_query = "SELECT id FROM festivos WHERE id = %s;"
+        if not execute_query(festivo_exist_query, (festivo_id,), fetch_one=True):
+            return jsonify({"message": f"El festivo con ID {festivo_id} no existe."}), 404
+
+        delete_query = "DELETE FROM festivos WHERE id = %s;"
+        execute_query(delete_query, (festivo_id,))
+
+        return jsonify({"message": f"Día festivo con ID {festivo_id} eliminado correctamente."}), 200
+
+    except Exception as e:
+        return jsonify({"message": f"Error al eliminar el día festivo: {str(e)}"}), 500
+
 
 @festivos_bp.route('/api/festivos/<int:festivo_id>', methods=['GET'])
 def get_festivo_by_id(festivo_id):
