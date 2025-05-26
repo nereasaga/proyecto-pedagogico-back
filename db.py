@@ -11,10 +11,19 @@ def execute_query(query, params=None, fetch_one=False, commit=False):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute(query, params)
+        cur.execute(query, params or ())
         if commit:
             conn.commit()
-        return cur.fetchone() if fetch_one else cur.fetchall()
+        if fetch_one:
+            try:
+                return cur.fetchone()
+            except psycopg2.ProgrammingError:
+                # No hay resultados para fetch
+                return None
+        elif query.strip().upper().startswith("SELECT"):
+            return cur.fetchall()
+        else:
+            return None
     except Exception as e:
         conn.rollback()
         print(f"Error en consulta: {e}")
