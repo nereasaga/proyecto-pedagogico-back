@@ -424,3 +424,25 @@ def delete_rol(rol_id):
 
     except Exception as e:
         return jsonify({"message": f"Error al eliminar el rol: {str(e)}"}), 500
+
+@roles_bp.route('/api/roles/<int:rol_id>', methods=['GET'])
+def get_rol_by_id(rol_id):
+    """
+    Obtiene un rol específico por su ID.
+    """
+    try:
+        query = "SELECT id, nombre FROM roles WHERE id = %s;"
+        rol = execute_query(query, (rol_id,), fetch_one=True)
+
+        if not rol:
+            return jsonify({"message": f"El rol con ID {rol_id} no existe."}), 404
+
+        rol_data = {
+            "id": rol[0],
+            "nombre": rol[1]
+        }
+
+        return jsonify(rol_data), 200
+
+    except Exception as e:
+        return jsonify({"message": f"Error al obtener el rol: {str(e)}"}), 500
