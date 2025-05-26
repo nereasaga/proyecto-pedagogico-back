@@ -132,7 +132,7 @@ def get_all_festivos():
                 "tipo": tipo_nombre,
                 "centro_id_aplicable": centro_id_festivo
             })
-        logging.exception("Error en GET /api/festivos")
+        logging.info("Error en GET /api/festivos")
         
         return jsonify(festivos_list), 200
 
@@ -143,55 +143,72 @@ def get_all_festivos():
     
 @festivos_bp.route('/api/festivos', methods=['POST'])
 def add_new_festivo():
-    """
-    Agrega un nuevo día festivo a la base de datos.
-    Requiere 'fecha', 'descripcion', y 'tipo_festivo_id' en el cuerpo de la solicitud JSON.
-    'centro_id' es opcional.
-    """
     try:
         data = request.get_json()
-
         if not data:
             return jsonify({"message": "Se requiere un cuerpo de solicitud JSON."}), 400
 
         fecha_str = data.get('fecha')
         descripcion = data.get('descripcion')
         tipo_festivo_id = data.get('tipo_festivo_id')
-        centro_id = data.get('centro_id') # Optional
+        centro_id = data.get('centro_id')
 
-        # Basic validation
+        print("DATA RECIBIDA:", data)
+        print("fecha_str:", fecha_str)
+        print("descripcion:", descripcion)
+        print("tipo_festivo_id:", tipo_festivo_id)
+        print("centro_id:", centro_id)
+
         if not all([fecha_str, descripcion, tipo_festivo_id]):
-            return jsonify({"message": "Faltan campos obligatorios: 'fecha', 'descripcion', 'tipo_festivo_id'."}), 400
+            return jsonify({"message": "Faltan campos obligatorios."}), 400
 
         try:
-            # Validate date format
             fecha = date.fromisoformat(fecha_str)
         except ValueError:
             return jsonify({"message": "Formato de fecha inválido. Use YYYY-MM-DD."}), 400
 
-        # Check if tipo_festivo_id exists
-        tipo_festivo_exists_query = "SELECT id FROM tipos_festivo WHERE id = %s;"
-        if not execute_query(tipo_festivo_exists_query, (tipo_festivo_id,), fetch_one=True):
+        # Convertir tipo_festivo_id a entero y validar
+        try:
+            tipo_festivo_id = int(tipo_festivo_id)
+        except (ValueError, TypeError):
+            return jsonify({"message": "El campo tipo_festivo_id debe ser un número válido."}), 400
+
+        # Validar y normalizar centro_id
+        if centro_id in [None, '', 'null']:
+            centro_id = None
+        else:
+            try:
+                centro_id = int(centro_id)
+            except (ValueError, TypeError):
+                return jsonify({"message": "El campo centro_id debe ser un número válido o nulo."}), 400
+
+        # Validar tipo_festivo_id existe
+        tipo_exists = execute_query(
+            "SELECT id FROM tipos_festivo WHERE id = %s;", (tipo_festivo_id,), fetch_one=True
+        )
+        if not tipo_exists:
             return jsonify({"message": f"El tipo_festivo_id {tipo_festivo_id} no existe."}), 404
-        
-        # Check if centro_id exists, if provided
+
+        # Validar centro_id existe solo si no es None
         if centro_id is not None:
-            centro_exists_query = "SELECT id FROM centros_trabajo WHERE id = %s;"
-            if not execute_query(centro_exists_query, (centro_id,), fetch_one=True):
+            centro_exists = execute_query(
+                "SELECT id FROM centros_trabajo WHERE id = %s;", (centro_id,), fetch_one=True
+            )
+            if not centro_exists:
                 return jsonify({"message": f"El centro_id {centro_id} no existe."}), 404
 
-        # Insert the new festivo
         insert_query = """
             INSERT INTO festivos (fecha, descripcion, tipo_festivo_id, centro_id)
             VALUES (%s, %s, %s, %s)
             RETURNING id;
         """
-        new_festivo_id = add_new_festivo(insert_query, (fecha, descripcion, tipo_festivo_id, centro_id))
+        new_festivo = execute_query(insert_query, (fecha, descripcion, tipo_festivo_id, centro_id), fetch_one=True, commit=True)
 
-        if new_festivo_id:
+
+        if new_festivo:
             return jsonify({
                 "message": "Día festivo agregado exitosamente.",
-                "id": new_festivo_id,
+                "id": new_festivo[0],
                 "fecha": str(fecha),
                 "descripcion": descripcion,
                 "tipo_festivo_id": tipo_festivo_id,
@@ -203,7 +220,8 @@ def add_new_festivo():
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({"message": f"Error al procesar la solicitud: {str(e)}"}), 500
+        return jsonify({"message": f"Error en el servidor: {str(e)}"}), 500
+
 
 
 @festivos_bp.route('/api/festivos/<int:festivo_id>', methods=['GET'])

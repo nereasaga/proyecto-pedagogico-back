@@ -3,7 +3,7 @@ from db import execute_query
 
 horarios_bp = Blueprint('horarios_bp', __name__)
 
-@horarios_bp.route('/api/horariosempleado/<int:empleado_id>', methods=['GET'])
+@horarios_bp.route('/api/horariosempleado/<int:usuario_id>', methods=['GET'])
 def get_horarios_empleado(empleado_id):
     """
     Obtiene todos los horarios de un empleado específico.
