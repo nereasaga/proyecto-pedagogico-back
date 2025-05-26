@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
-from db import execute_query, date
+from db import execute_query
+from datetime import date
 
 
 calendario_bp = Blueprint('calendario_bp', __name__)
@@ -172,7 +173,7 @@ def add_new_festivo():
         
         # Check if centro_id exists, if provided
         if centro_id is not None:
-            centro_exists_query = "SELECT id FROM centros WHERE id = %s;"
+            centro_exists_query = "SELECT id FROM centros_trabajo WHERE id = %s;"
             if not execute_query(centro_exists_query, (centro_id,), fetch_one=True):
                 return jsonify({"message": f"El centro_id {centro_id} no existe."}), 404
 
@@ -197,4 +198,6 @@ def add_new_festivo():
             return jsonify({"message": "Error al agregar el día festivo."}), 500
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({"message": f"Error al procesar la solicitud: {str(e)}"}), 500
