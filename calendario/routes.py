@@ -406,32 +406,6 @@ def update_rol(rol_id):
     except Exception as e:
         return jsonify({"message": f"Error al actualizar el rol: {str(e)}"}), 500
 
-@roles_bp.route('/api/roles/<int:rol_id>', methods=['PUT'])
-def update_rol(rol_id):
-    """
-    Actualiza el nombre de un rol.
-    Requiere 'nombre' en el cuerpo JSON.
-    """
-    try:
-        data = request.get_json()
-        nombre = data.get('nombre')
-
-        if not nombre:
-            return jsonify({"message": "El campo 'nombre' es obligatorio."}), 400
-
-        # Verifica si existe el rol
-        check_query = "SELECT id FROM roles WHERE id = %s;"
-        if not execute_query(check_query, (rol_id,), fetch_one=True):
-            return jsonify({"message": f"El rol con ID {rol_id} no existe."}), 404
-
-        update_query = "UPDATE roles SET nombre = %s WHERE id = %s;"
-        execute_query(update_query, (nombre, rol_id),commit=True)
-
-        return jsonify({"message": "Rol actualizado correctamente."}), 200
-
-    except Exception as e:
-        return jsonify({"message": f"Error al actualizar el rol: {str(e)}"}), 500
-
 @roles_bp.route('/api/roles/<int:rol_id>', methods=['DELETE'])
 def delete_rol(rol_id):
     """
