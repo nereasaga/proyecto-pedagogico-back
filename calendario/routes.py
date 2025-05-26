@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 from db import execute_query
 from datetime import date
 import logging
+import traceback
 
 calendario_bp = Blueprint('calendario_bp', __name__)
 festivos_bp = Blueprint('festivos_bp', __name__)
@@ -106,6 +107,7 @@ def get_all_festivos():
 
         query = """
             SELECT
+                f.id,
                 f.fecha,
                 f.descripcion,
                 tf.nombre AS tipo_festivo_nombre,
@@ -127,8 +129,9 @@ def get_all_festivos():
             return jsonify({"message": "No se encontraron días festivos."}), 404
 
         festivos_list = []
-        for fecha, descripcion, tipo_nombre, centro_id_festivo in festivos_data:
+        for id_festivo, fecha, descripcion, tipo_nombre, centro_id_festivo in festivos_data:
             festivos_list.append({
+                "id": id_festivo,
                 "fecha": str(fecha),
                 "descripcion": descripcion,
                 "tipo": tipo_nombre,
@@ -295,8 +298,14 @@ def delete_festivo(festivo_id):
 
         return jsonify({"message": f"Día festivo con ID {festivo_id} eliminado correctamente."}), 200
 
+    # except Exception as e:
+    #     return jsonify({"message": f"Error al eliminar el día festivo: {str(e)}"}), 500
     except Exception as e:
+    
+        traceback_str = traceback.format_exc()
+        print(traceback_str)  # Esto se verá en la consola de Flask
         return jsonify({"message": f"Error al eliminar el día festivo: {str(e)}"}), 500
+
 
 
 @festivos_bp.route('/api/festivos/<int:festivo_id>', methods=['GET'])
