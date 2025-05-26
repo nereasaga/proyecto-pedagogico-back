@@ -5,6 +5,7 @@ import logging
 
 calendario_bp = Blueprint('calendario_bp', __name__)
 festivos_bp = Blueprint('festivos_bp', __name__)
+roles_bp = Blueprint('roles_bp', __name__)
 
 @calendario_bp.route('/api/calendario/<int:usuario_id>', methods=['GET'])
 def get_calendario_empleado(usuario_id):
@@ -92,7 +93,7 @@ def get_calendario_empleado(usuario_id):
 
     except Exception as e:
         return jsonify({"message": f"Error al obtener calendario del empleado: {str(e)}"}), 500
-    
+   #festivos 
 @festivos_bp.route('/api/festivos', methods=['GET'])
 def get_all_festivos():
     """
@@ -132,7 +133,7 @@ def get_all_festivos():
                 "tipo": tipo_nombre,
                 "centro_id_aplicable": centro_id_festivo
             })
-        logging.exception("Error en GET /api/festivos")
+        logging.info("Error en GET /api/festivos")
         
         return jsonify(festivos_list), 200
 
@@ -143,55 +144,72 @@ def get_all_festivos():
     
 @festivos_bp.route('/api/festivos', methods=['POST'])
 def add_new_festivo():
-    """
-    Agrega un nuevo día festivo a la base de datos.
-    Requiere 'fecha', 'descripcion', y 'tipo_festivo_id' en el cuerpo de la solicitud JSON.
-    'centro_id' es opcional.
-    """
     try:
         data = request.get_json()
-
         if not data:
             return jsonify({"message": "Se requiere un cuerpo de solicitud JSON."}), 400
 
         fecha_str = data.get('fecha')
         descripcion = data.get('descripcion')
         tipo_festivo_id = data.get('tipo_festivo_id')
-        centro_id = data.get('centro_id') # Optional
+        centro_id = data.get('centro_id')
 
-        # Basic validation
+        print("DATA RECIBIDA:", data)
+        print("fecha_str:", fecha_str)
+        print("descripcion:", descripcion)
+        print("tipo_festivo_id:", tipo_festivo_id)
+        print("centro_id:", centro_id)
+
         if not all([fecha_str, descripcion, tipo_festivo_id]):
-            return jsonify({"message": "Faltan campos obligatorios: 'fecha', 'descripcion', 'tipo_festivo_id'."}), 400
+            return jsonify({"message": "Faltan campos obligatorios."}), 400
 
         try:
-            # Validate date format
             fecha = date.fromisoformat(fecha_str)
         except ValueError:
             return jsonify({"message": "Formato de fecha inválido. Use YYYY-MM-DD."}), 400
 
-        # Check if tipo_festivo_id exists
-        tipo_festivo_exists_query = "SELECT id FROM tipos_festivo WHERE id = %s;"
-        if not execute_query(tipo_festivo_exists_query, (tipo_festivo_id,), fetch_one=True):
+        # Convertir tipo_festivo_id a entero y validar
+        try:
+            tipo_festivo_id = int(tipo_festivo_id)
+        except (ValueError, TypeError):
+            return jsonify({"message": "El campo tipo_festivo_id debe ser un número válido."}), 400
+
+        # Validar y normalizar centro_id
+        if centro_id in [None, '', 'null']:
+            centro_id = None
+        else:
+            try:
+                centro_id = int(centro_id)
+            except (ValueError, TypeError):
+                return jsonify({"message": "El campo centro_id debe ser un número válido o nulo."}), 400
+
+        # Validar tipo_festivo_id existe
+        tipo_exists = execute_query(
+            "SELECT id FROM tipos_festivo WHERE id = %s;", (tipo_festivo_id,), fetch_one=True
+        )
+        if not tipo_exists:
             return jsonify({"message": f"El tipo_festivo_id {tipo_festivo_id} no existe."}), 404
-        
-        # Check if centro_id exists, if provided
+
+        # Validar centro_id existe solo si no es None
         if centro_id is not None:
-            centro_exists_query = "SELECT id FROM centros_trabajo WHERE id = %s;"
-            if not execute_query(centro_exists_query, (centro_id,), fetch_one=True):
+            centro_exists = execute_query(
+                "SELECT id FROM centros_trabajo WHERE id = %s;", (centro_id,), fetch_one=True
+            )
+            if not centro_exists:
                 return jsonify({"message": f"El centro_id {centro_id} no existe."}), 404
 
-        # Insert the new festivo
         insert_query = """
             INSERT INTO festivos (fecha, descripcion, tipo_festivo_id, centro_id)
             VALUES (%s, %s, %s, %s)
             RETURNING id;
         """
-        new_festivo_id = add_new_festivo(insert_query, (fecha, descripcion, tipo_festivo_id, centro_id))
+        new_festivo = execute_query(insert_query, (fecha, descripcion, tipo_festivo_id, centro_id), fetch_one=True, commit=True)
 
-        if new_festivo_id:
+
+        if new_festivo:
             return jsonify({
                 "message": "Día festivo agregado exitosamente.",
-                "id": new_festivo_id,
+                "id": new_festivo[0],
                 "fecha": str(fecha),
                 "descripcion": descripcion,
                 "tipo_festivo_id": tipo_festivo_id,
@@ -201,7 +219,10 @@ def add_new_festivo():
             return jsonify({"message": "Error al agregar el día festivo."}), 500
 
     except Exception as e:
-        return jsonify({"message": f"Error al procesar la solicitud: {str(e)}"}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({"message": f"Error en el servidor: {str(e)}"}), 500
+
 
 @festivos_bp.route('/api/festivos/<int:festivo_id>', methods=['PUT'])
 def update_festivo(festivo_id):
@@ -250,7 +271,7 @@ def update_festivo(festivo_id):
             SET fecha = %s, descripcion = %s, tipo_festivo_id = %s, centro_id = %s
             WHERE id = %s;
         """
-        execute_query(update_query, (fecha, descripcion, tipo_festivo_id, centro_id, festivo_id))
+        execute_query(update_query, (fecha, descripcion, tipo_festivo_id, centro_id, festivo_id), commit=True)
 
         return jsonify({"message": "Día festivo actualizado correctamente."}), 200
 
@@ -269,7 +290,7 @@ def delete_festivo(festivo_id):
             return jsonify({"message": f"El festivo con ID {festivo_id} no existe."}), 404
 
         delete_query = "DELETE FROM festivos WHERE id = %s;"
-        execute_query(delete_query, (festivo_id,))
+        execute_query(delete_query, (festivo_id,), commit=True)
 
         return jsonify({"message": f"Día festivo con ID {festivo_id} eliminado correctamente."}), 200
 
@@ -314,3 +335,118 @@ def get_festivo_by_id(festivo_id):
 
     except Exception as e:
         return jsonify({"message": f"Error al obtener el día festivo: {str(e)}"}), 500
+    
+#roles
+@roles_bp.route('/api/roles', methods=['GET'])
+def get_roles():
+    """
+    Obtiene todos los roles de la base de datos.
+    """
+    try:
+        query = "SELECT id, nombre FROM roles;"
+        roles = execute_query(query)
+
+        if not roles:
+            return jsonify({"message": "No se encontraron roles."}), 404
+
+        roles_list = [{"id": r[0], "nombre": r[1]} for r in roles]
+        return jsonify(roles_list), 200
+
+    except Exception as e:
+        return jsonify({"message": f"Error al obtener los roles: {str(e)}"}), 500
+        
+@roles_bp.route('/api/roles', methods=['POST'])
+def create_rol():
+    """
+    Crea un nuevo rol.
+    Requiere 'nombre' en el cuerpo JSON.
+    """
+    try:
+        data = request.get_json()
+        nombre = data.get('nombre')
+
+        if not nombre:
+            return jsonify({"message": "El campo 'nombre' es obligatorio."}), 400
+
+        insert_query = "INSERT INTO roles (nombre) VALUES (%s) RETURNING id;"
+        new_rol_id = add_new_festivo(insert_query, (nombre,))  # Usa tu función de inserción aquí
+
+        return jsonify({
+            "message": "Rol creado exitosamente.",
+            "id": new_rol_id,
+            "nombre": nombre
+        }), 201
+
+    except Exception as e:
+        return jsonify({"message": f"Error al crear el rol: {str(e)}"}), 500
+
+@roles_bp.route('/api/roles/<int:rol_id>', methods=['PUT'])
+def update_rol(rol_id):
+    """
+    Actualiza el nombre de un rol.
+    Requiere 'nombre' en el cuerpo JSON.
+    """
+    try:
+        data = request.get_json()
+        nombre = data.get('nombre')
+
+        if not nombre:
+            return jsonify({"message": "El campo 'nombre' es obligatorio."}), 400
+
+        # Verifica si existe el rol
+        check_query = "SELECT id FROM roles WHERE id = %s;"
+        if not execute_query(check_query, (rol_id,), fetch_one=True):
+            return jsonify({"message": f"El rol con ID {rol_id} no existe."}), 404
+
+        update_query = "UPDATE roles SET nombre = %s WHERE id = %s;"
+        execute_query(update_query, (nombre, rol_id),commit=True)
+
+        return jsonify({"message": "Rol actualizado correctamente."}), 200
+
+    except Exception as e:
+        return jsonify({"message": f"Error al actualizar el rol: {str(e)}"}), 500
+
+@roles_bp.route('/api/roles/<int:rol_id>', methods=['PUT'])
+def update_rol(rol_id):
+    """
+    Actualiza el nombre de un rol.
+    Requiere 'nombre' en el cuerpo JSON.
+    """
+    try:
+        data = request.get_json()
+        nombre = data.get('nombre')
+
+        if not nombre:
+            return jsonify({"message": "El campo 'nombre' es obligatorio."}), 400
+
+        # Verifica si existe el rol
+        check_query = "SELECT id FROM roles WHERE id = %s;"
+        if not execute_query(check_query, (rol_id,), fetch_one=True):
+            return jsonify({"message": f"El rol con ID {rol_id} no existe."}), 404
+
+        update_query = "UPDATE roles SET nombre = %s WHERE id = %s;"
+        execute_query(update_query, (nombre, rol_id),commit=True)
+
+        return jsonify({"message": "Rol actualizado correctamente."}), 200
+
+    except Exception as e:
+        return jsonify({"message": f"Error al actualizar el rol: {str(e)}"}), 500
+
+@roles_bp.route('/api/roles/<int:rol_id>', methods=['DELETE'])
+def delete_rol(rol_id):
+    """
+    Elimina un rol por su ID.
+    """
+    try:
+        # Verifica si existe el rol
+        check_query = "SELECT id FROM roles WHERE id = %s;"
+        if not execute_query(check_query, (rol_id,), fetch_one=True):
+            return jsonify({"message": f"El rol con ID {rol_id} no existe."}), 404
+
+        delete_query = "DELETE FROM roles WHERE id = %s;"
+        execute_query(delete_query, (rol_id,),commit=True)
+
+        return jsonify({"message": f"Rol con ID {rol_id} eliminado correctamente."}), 200
+
+    except Exception as e:
+        return jsonify({"message": f"Error al eliminar el rol: {str(e)}"}), 500
