@@ -12,7 +12,7 @@ from functools import wraps
 
 auth_bp = Blueprint('auth_bp', __name__)
 
-# Ruta de login para obtener tokens
+# Ruta de login para obtener tokens 
 @auth_bp.route('/api/login', methods=['POST'])
 def login():
     """
@@ -117,9 +117,9 @@ def permiso_requerido(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# Add a test route to verify authentication
+# Add a test route to verify authentication 
 @auth_bp.route('/api/test-auth', methods=['GET'])
-# Removed @jwt_required() decorator to make this route public
+# Removed @jwt_required() decorator to make this route public que no esta protegido
 def test_auth():
     """
     Endpoint de prueba para verificar que la autenticación funciona
