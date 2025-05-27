@@ -34,6 +34,8 @@ from calendario.horarios_routes import horarios_bp
 from calendario.routes import roles_bp
 from calendario.routes import centros_bp
 from auth import auth_bp  # Importar el blueprint de autenticación
+from calendario.vacaciones_routes import vacaciones_bp
+
 
 app.register_blueprint(empleados_bp)
 app.register_blueprint(calendario_bp)
@@ -42,6 +44,8 @@ app.register_blueprint(horarios_bp)
 app.register_blueprint(roles_bp)
 app.register_blueprint(centros_bp)
 app.register_blueprint(auth_bp)  # Registrar el blueprint de autenticación
+app.register_blueprint(vacaciones_bp)
+
 
 
 

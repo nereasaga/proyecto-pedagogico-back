@@ -121,32 +121,43 @@ def create_empleado():
             centro_id = centro_result[0]
             
          # Insertar usuario
-        insert_usuario = """
+        new_user_id = execute_query("""
             INSERT INTO usuarios (nombre_completo, email, password_hash, rol_id, centro_id)
             VALUES (%s, %s, %s, %s, %s)
             RETURNING id;
-        """
-        new_user_id = execute_query(insert_usuario, (nombre_completo, email, password_hash, rol_id, centro_id), fetch_one=True, commit=True)[0]
+        """, (nombre_completo, email, password_hash, rol_id, centro_id),
+        fetch_one=True, commit=True)[0]
 
-        insert_empleado = """
+        # ---------- insertar empleado y recuperar SU id ----------
+        new_empleado_id = execute_query("""
             INSERT INTO empleados (usuario_id, jornada_semanal_horas, jornada_anual_horas, dias_vacaciones_asignados)
-            VALUES (%s, %s, %s, %s);
-        """
-        execute_query(insert_empleado, (new_user_id, jornada_semanal, jornada_anual, dias_vacaciones), commit=True)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id;
+        """, (new_user_id, jornada_semanal, jornada_anual, dias_vacaciones),
+        fetch_one=True, commit=True)[0]
 
-        horarios = data.get('horarios', [])
-        insert_horario = """
+        # ---------- insertar horarios del empleado ----------
+        horarios          = data.get('horarios', [])
+        dias_map = {
+            'Lunes':1, 'Martes':2, 'Miércoles':3, 'Miercoles':3,
+            'Jueves':4, 'Viernes':5, 'Sábado':6, 'Sabado':6, 'Domingo':7
+        }
+
+        insert_horario_sql = """
             INSERT INTO horarios_empleado (empleado_id, dia_semana, hora_entrada, hora_salida)
             VALUES (%s, %s, %s, %s);
         """
-        for horario in horarios:
-            execute_query(
-                insert_horario,
-                (new_user_id, horario['dia_semana'], horario['hora_entrada'], horario['hora_salida']),
-                commit=True
-            )
 
-        return jsonify({"message": "Empleado creado exitosamente", "usuario_id": new_user_id}), 201
+        for h in horarios:
+            # si llega como texto lo convierto, si ya es int lo dejo
+            dia_num = dias_map.get(h['dia_semana'], h['dia_semana'])
+            execute_query(insert_horario_sql,
+                          (new_empleado_id, dia_num, h['hora_entrada'], h['hora_salida']),
+                          commit=True)
+
+        return jsonify({"message": "Empleado creado exitosamente",
+                        "usuario_id": new_user_id,
+                        "empleado_id": new_empleado_id}), 201
 
     except Exception as e:
         return jsonify({"message": f"Error al crear empleado: {str(e)}"}), 500
