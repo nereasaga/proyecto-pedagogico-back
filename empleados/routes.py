@@ -4,12 +4,12 @@ import bcrypt
 
 empleados_bp = Blueprint('empleados_bp', __name__) 
 
-
 @empleados_bp.route('/api/todosEmpleados', methods=['GET'])
 def get_empleados():
     try:
         query = """
             SELECT 
+                e.id AS empleado_id,
                 u.id AS usuario_id,
                 u.nombre_completo,
                 u.email,
@@ -26,26 +26,29 @@ def get_empleados():
         result = execute_query(query)
         empleados = [
             {
-                "usuario_id": row[0],
-                "nombre_completo": row[1],
-                "email": row[2],
-                "rol": row[3],
-                "centro_trabajo": row[4],
-                "jornada_semanal_horas": float(row[5]),
-                "jornada_anual_horas": float(row[6]),
-                "dias_vacaciones_asignados": row[7]
+                "empleado_id": row[0],
+                "usuario_id": row[1],
+                "nombre_completo": row[2],
+                "email": row[3],
+                "rol": row[4],
+                "centro_trabajo": row[5],
+                "jornada_semanal_horas": float(row[6]),
+                "jornada_anual_horas": float(row[7]),
+                "dias_vacaciones_asignados": row[8]
             }
             for row in result
         ]
         return jsonify(empleados)
     except Exception as e:
         return jsonify({"message": f"Error al obtener empleados: {str(e)}"}), 500
-    
+
+
 @empleados_bp.route('/api/empleados/<int:usuario_id>', methods=['GET'])
 def get_empleado(usuario_id):
     try:
         query = """
             SELECT 
+                e.id AS empleado_id,
                 u.id AS usuario_id,
                 u.nombre_completo,
                 u.email,
@@ -65,19 +68,19 @@ def get_empleado(usuario_id):
             return jsonify({"message": "Empleado no encontrado"}), 404
 
         empleado = {
-            "usuario_id": row[0],
-            "nombre_completo": row[1],
-            "email": row[2],
-            "rol": row[3],
-            "centro_trabajo": row[4],
-            "jornada_semanal_horas": float(row[5]),
-            "jornada_anual_horas": float(row[6]),
-            "dias_vacaciones_asignados": row[7]
+            "empleado_id": row[0],
+            "usuario_id": row[1],
+            "nombre_completo": row[2],
+            "email": row[3],
+            "rol": row[4],
+            "centro_trabajo": row[5],
+            "jornada_semanal_horas": float(row[6]),
+            "jornada_anual_horas": float(row[7]),
+            "dias_vacaciones_asignados": row[8]
         }
         return jsonify(empleado)
     except Exception as e:
         return jsonify({"message": f"Error al obtener empleado: {str(e)}"}), 500
-
 
 @empleados_bp.route('/api/empleados', methods=['POST'])
 def create_empleado():
