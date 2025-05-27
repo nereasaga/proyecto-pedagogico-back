@@ -27,6 +27,7 @@ from calendario.routes import festivos_bp
 from calendario.horarios_routes import horarios_bp
 from calendario.routes import roles_bp
 from calendario.routes import centros_bp
+from calendario.vacaciones_routes import vacaciones_bp
 
 app.register_blueprint(empleados_bp)
 app.register_blueprint(calendario_bp)
@@ -35,6 +36,7 @@ app.register_blueprint(festivos_bp)
 app.register_blueprint(horarios_bp)
 app.register_blueprint(roles_bp)
 app.register_blueprint(centros_bp)
+app.register_blueprint(vacaciones_bp)
 
 
 

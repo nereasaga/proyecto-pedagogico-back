@@ -88,9 +88,6 @@ def get_calendario_empleado(usuario_id):
                 "aprobada": aprobada
             })
 
-                  
-            
-
         return jsonify(calendario)
 
     except Exception as e:
