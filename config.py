@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 
 class Config:
     # URL de la base de datos PostgreSQL

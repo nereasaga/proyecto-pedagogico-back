@@ -1,13 +1,21 @@
 from flask import Blueprint, jsonify, request
 from db import execute_query
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 horarios_bp = Blueprint('horarios_bp', __name__)
 
 @horarios_bp.route('/api/horariosempleado/<int:empleado_id>', methods=['GET'])
+@jwt_required()  # Proteger la ruta con JWT
 def get_horarios_empleado(empleado_id):
     """
     Obtiene todos los horarios de un empleado específico.
     """
+    # Obtener identidad del token
+    current_identity = get_jwt_identity()
+    
+    # Opcional: Verificar permisos (si el usuario actual puede ver estos horarios)
+    # Por ejemplo, solo permitir al propio usuario o a administradores
+    
     try:
         # Verificar que el empleado existe
         check_query = "SELECT id FROM empleados WHERE usuario_id = %s;"

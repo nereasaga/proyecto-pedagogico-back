@@ -127,6 +127,10 @@ INSERT INTO festivos (fecha, descripcion, tipo_festivo_id, centro_id) VALUES
 -- Días de descanso propios de la entidad (ej. "Día Tomillo")
 ('2025-12-23', 'Día Tomillo', (SELECT id FROM tipos_festivo WHERE nombre = 'Propio de la Entidad'), NULL); -- Podría ser global o por centro
 
+INSERT INTO usuarios (nombre_completo, email, password_hash, rol_id, centro_id) VALUES
+('Admin General', 'admin@empresa.com', 'hashed_password_admin', (SELECT id FROM roles WHERE nombre = 'Administrador'), NULL),
+('Empleado Juan Pérez', 'juan.perez@empresa.com', 'hashed_password_juan', (SELECT id FROM roles WHERE nombre = 'Empleado'), (SELECT id FROM centros_trabajo WHERE nombre = 'Barcelona')),
+
 --Crear tabla vacaciones_empleado
 CREATE TABLE vacaciones_empleado (
     id SERIAL PRIMARY KEY,

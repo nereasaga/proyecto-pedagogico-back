@@ -4,12 +4,12 @@ import bcrypt
 
 empleados_bp = Blueprint('empleados_bp', __name__) 
 
-
 @empleados_bp.route('/api/todosEmpleados', methods=['GET'])
 def get_empleados():
     try:
         query = """
             SELECT 
+                e.id AS empleado_id,
                 u.id AS usuario_id,
                 u.nombre_completo,
                 u.email,
@@ -26,26 +26,29 @@ def get_empleados():
         result = execute_query(query)
         empleados = [
             {
-                "usuario_id": row[0],
-                "nombre_completo": row[1],
-                "email": row[2],
-                "rol": row[3],
-                "centro_trabajo": row[4],
-                "jornada_semanal_horas": float(row[5]),
-                "jornada_anual_horas": float(row[6]),
-                "dias_vacaciones_asignados": row[7]
+                "empleado_id": row[0],
+                "usuario_id": row[1],
+                "nombre_completo": row[2],
+                "email": row[3],
+                "rol": row[4],
+                "centro_trabajo": row[5],
+                "jornada_semanal_horas": float(row[6]),
+                "jornada_anual_horas": float(row[7]),
+                "dias_vacaciones_asignados": row[8]
             }
             for row in result
         ]
         return jsonify(empleados)
     except Exception as e:
         return jsonify({"message": f"Error al obtener empleados: {str(e)}"}), 500
-    
+
+
 @empleados_bp.route('/api/empleados/<int:usuario_id>', methods=['GET'])
 def get_empleado(usuario_id):
     try:
         query = """
             SELECT 
+                e.id AS empleado_id,
                 u.id AS usuario_id,
                 u.nombre_completo,
                 u.email,
@@ -65,19 +68,19 @@ def get_empleado(usuario_id):
             return jsonify({"message": "Empleado no encontrado"}), 404
 
         empleado = {
-            "usuario_id": row[0],
-            "nombre_completo": row[1],
-            "email": row[2],
-            "rol": row[3],
-            "centro_trabajo": row[4],
-            "jornada_semanal_horas": float(row[5]),
-            "jornada_anual_horas": float(row[6]),
-            "dias_vacaciones_asignados": row[7]
+            "empleado_id": row[0],
+            "usuario_id": row[1],
+            "nombre_completo": row[2],
+            "email": row[3],
+            "rol": row[4],
+            "centro_trabajo": row[5],
+            "jornada_semanal_horas": float(row[6]),
+            "jornada_anual_horas": float(row[7]),
+            "dias_vacaciones_asignados": row[8]
         }
         return jsonify(empleado)
     except Exception as e:
         return jsonify({"message": f"Error al obtener empleado: {str(e)}"}), 500
-
 
 @empleados_bp.route('/api/empleados', methods=['POST'])
 def create_empleado():
@@ -85,6 +88,8 @@ def create_empleado():
         data = request.get_json()
         if not data:
             return jsonify({"message": "Datos JSON no proporcionados"}), 400
+        
+        print("Datos recibidos:", data)
 
         nombre_completo = data.get('nombre_completo')
         email = data.get('email')
@@ -119,20 +124,43 @@ def create_empleado():
             centro_id = centro_result[0]
             
          # Insertar usuario
-        insert_usuario = """
+        new_user_id = execute_query("""
             INSERT INTO usuarios (nombre_completo, email, password_hash, rol_id, centro_id)
             VALUES (%s, %s, %s, %s, %s)
             RETURNING id;
-        """
-        new_user_id = execute_query(insert_usuario, (nombre_completo, email, password_hash, rol_id, centro_id), fetch_one=True, commit=True)[0]
+        """, (nombre_completo, email, password_hash, rol_id, centro_id),
+        fetch_one=True, commit=True)[0]
 
-        insert_empleado = """
+        # ---------- insertar empleado y recuperar SU id ----------
+        new_empleado_id = execute_query("""
             INSERT INTO empleados (usuario_id, jornada_semanal_horas, jornada_anual_horas, dias_vacaciones_asignados)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id;
+        """, (new_user_id, jornada_semanal, jornada_anual, dias_vacaciones),
+        fetch_one=True, commit=True)[0]
+
+        # ---------- insertar horarios del empleado ----------
+        horarios          = data.get('horarios', [])
+        dias_map = {
+            'Lunes':1, 'Martes':2, 'Miércoles':3, 'Miercoles':3,
+            'Jueves':4, 'Viernes':5, 'Sábado':6, 'Sabado':6, 'Domingo':7
+        }
+
+        insert_horario_sql = """
+            INSERT INTO horarios_empleado (empleado_id, dia_semana, hora_entrada, hora_salida)
             VALUES (%s, %s, %s, %s);
         """
-        execute_query(insert_empleado, (new_user_id, jornada_semanal, jornada_anual, dias_vacaciones), commit=True)
 
-        return jsonify({"message": "Empleado creado exitosamente", "usuario_id": new_user_id}), 201
+        for h in horarios:
+            # si llega como texto lo convierto, si ya es int lo dejo
+            dia_num = dias_map.get(h['dia_semana'], h['dia_semana'])
+            execute_query(insert_horario_sql,
+                          (new_empleado_id, dia_num, h['hora_entrada'], h['hora_salida']),
+                          commit=True)
+
+        return jsonify({"message": "Empleado creado exitosamente",
+                        "usuario_id": new_user_id,
+                        "empleado_id": new_empleado_id}), 201
 
     except Exception as e:
         return jsonify({"message": f"Error al crear empleado: {str(e)}"}), 500

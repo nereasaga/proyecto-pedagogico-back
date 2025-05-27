@@ -2,11 +2,13 @@ from flask import Blueprint, jsonify, request
 from db import execute_query
 from datetime import date
 import logging
+import traceback
 
 calendario_bp = Blueprint('calendario_bp', __name__)
 festivos_bp = Blueprint('festivos_bp', __name__)
 roles_bp = Blueprint('roles_bp', __name__)
 centros_bp = Blueprint('centros_bp', __name__)
+tipos_festivo_bp = Blueprint('tipos_festivo_bp', __name__)
 
 @calendario_bp.route('/api/calendario/<int:usuario_id>', methods=['GET'])
 def get_calendario_empleado(usuario_id):
@@ -87,9 +89,6 @@ def get_calendario_empleado(usuario_id):
                 "aprobada": aprobada
             })
 
-                  
-            
-
         return jsonify(calendario)
 
     except Exception as e:
@@ -106,6 +105,7 @@ def get_all_festivos():
 
         query = """
             SELECT
+                f.id,
                 f.fecha,
                 f.descripcion,
                 tf.nombre AS tipo_festivo_nombre,
@@ -127,8 +127,9 @@ def get_all_festivos():
             return jsonify({"message": "No se encontraron días festivos."}), 404
 
         festivos_list = []
-        for fecha, descripcion, tipo_nombre, centro_id_festivo in festivos_data:
+        for id_festivo, fecha, descripcion, tipo_nombre, centro_id_festivo in festivos_data:
             festivos_list.append({
+                "id": id_festivo,
                 "fecha": str(fecha),
                 "descripcion": descripcion,
                 "tipo": tipo_nombre,
@@ -297,6 +298,12 @@ def delete_festivo(festivo_id):
 
     except Exception as e:
         return jsonify({"message": f"Error al eliminar el día festivo: {str(e)}"}), 500
+    # except Exception as e:
+    
+    #     traceback_str = traceback.format_exc()
+    #     print(traceback_str)  
+    #     return jsonify({"message": f"Error al eliminar el día festivo: {str(e)}"}), 500
+
 
 
 @festivos_bp.route('/api/festivos/<int:festivo_id>', methods=['GET'])
@@ -447,6 +454,7 @@ def get_rol_by_id(rol_id):
 
     except Exception as e:
         return jsonify({"message": f"Error al obtener el rol: {str(e)}"}), 500
+
     
 # Centros de trabajo endpoints    
 @centros_bp.route('/api/centros', methods=['GET'])
@@ -630,4 +638,26 @@ def delete_centro(centro_id):
     except Exception as e:
         return jsonify({"message": f"Error al eliminar centro de trabajo: {str(e)}"}), 500
     
-    
+    #tipos de festivo
+@tipos_festivo_bp.route('/api/tipos-festivo', methods=['GET'])
+def get_tipos_festivo():
+    """
+    Obtiene todos los tipos de festivo de la base de datos.
+    """
+    try:
+        # SQL query to select id and nombre from the tipos_festivo table
+        query = "SELECT id, nombre FROM tipos_festivo;"
+        
+        # results = [(1, 'Nacional'), (2, 'Autonómico'), (3, 'Local')] 
+        results = execute_query(query) 
+
+        if not results:
+            return jsonify({"message": "No se encontraron tipos de festivo."}), 404
+
+        # Format the results into a list of dictionaries
+        tipos_festivo_list = [{"id": r[0], "nombre": r[1]} for r in results]
+        
+        return jsonify(tipos_festivo_list), 200
+
+    except Exception as e:
+        return jsonify({"message": f"Error al obtener los tipos de festivo: {str(e)}"}), 500

@@ -1,0 +1,133 @@
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import (
+    create_access_token, 
+    create_refresh_token,
+    jwt_required, 
+    get_jwt_identity,
+    get_jwt,
+    current_user
+)
+from db import execute_query
+from functools import wraps
+
+auth_bp = Blueprint('auth_bp', __name__)
+
+# Ruta de login para obtener tokens
+@auth_bp.route('/api/login', methods=['POST'])
+def login():
+    """
+    Endpoint para autenticar usuarios y generar tokens JWT
+    
+    Recibe: JSON con email y password
+    Devuelve: access_token, refresh_token y datos básicos del usuario
+    """
+    datos = request.get_json()
+    if not datos:
+        return jsonify({"mensaje": "Datos JSON no proporcionados"}), 400
+    
+    email = datos.get('email')
+    password = datos.get('password')
+    
+    if not email or not password:
+        return jsonify({"mensaje": "Email y contraseña son requeridos"}), 400
+    
+    try:
+        # Consulta para obtener usuario y su rol
+        query = """
+            SELECT 
+                u.id, 
+                u.password_hash, 
+                r.nombre AS rol,
+                u.nombre_completo,
+                u.centro_id
+            FROM usuarios u
+            JOIN roles r ON u.rol_id = r.id
+            WHERE u.email = %s;
+        """
+        usuario = execute_query(query, (email,), fetch_one=True)
+        
+        # Verificar si el usuario existe y la contraseña es correcta
+        if not usuario or usuario[1] != password:  # En producción usar verificación de hash
+            return jsonify({"mensaje": "Email o contraseña incorrectos"}), 401
+        
+        # Crear identity con datos del usuario
+        identity = {
+            'id': usuario[0],
+            'rol': usuario[2],
+            'nombre': usuario[3],
+            'centro_id': usuario[4]
+        }
+        
+        # Crear tokens
+        access_token = create_access_token(identity=identity)
+        refresh_token = create_refresh_token(identity=identity)
+        
+        return jsonify({
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "usuario_id": usuario[0],
+            "rol": usuario[2],
+            "nombre": usuario[3]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"mensaje": f"Error en login: {str(e)}"}), 500
+
+# Ruta para refrescar tokens
+@auth_bp.route('/api/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+    """
+    Endpoint para renovar el access_token usando un refresh_token
+    
+    Requiere: refresh_token válido en el header Authorization
+    Devuelve: nuevo access_token
+    """
+    identity = get_jwt_identity()
+    access_token = create_access_token(identity=identity)
+    return jsonify(access_token=access_token), 200
+
+# Función para verificar permisos según rol
+def verificar_permiso(id_usuario_actual, rol_actual, id_solicitado):
+    """
+    Verifica si un usuario tiene permiso para acceder a ciertos datos
+    
+    Args:
+        id_usuario_actual: ID del usuario que hace la petición
+        rol_actual: Rol del usuario que hace la petición
+        id_solicitado: ID del usuario cuyos datos se solicitan
+        
+    Returns:
+        bool: True si tiene permiso, False si no
+    """
+    # Administradores pueden acceder a todo
+    if rol_actual == 'Administrador':
+        return True
+    # Responsables de Área pueden ver datos de su centro
+    elif rol_actual == 'Responsable de Área':
+        # Aquí podrías verificar si el usuario solicitado pertenece al mismo centro
+        # que el responsable, pero necesitarías hacer una consulta adicional
+        return id_usuario_actual == id_solicitado
+    # Empleados solo pueden ver sus propios datos
+    else:
+        return id_usuario_actual == id_solicitado
+
+# Decorador personalizado para verificar permisos
+def permiso_requerido(f):
+    @wraps(f)
+    @jwt_required()
+    def decorated_function(*args, **kwargs):
+        # Obtener identidad del token
+        current_identity = get_jwt_identity()
+        id_usuario_actual = current_identity['id']
+        rol_actual = current_identity['rol']
+        
+        # Obtener ID del usuario solicitado (asumiendo que está en kwargs)
+        usuario_id = kwargs.get('usuario_id')
+        
+        # Verificar permisos
+        if not verificar_permiso(id_usuario_actual, rol_actual, usuario_id):
+            return jsonify({"mensaje": "No autorizado para acceder a estos datos"}), 403
+            
+        return f(*args, **kwargs)
+    return decorated_function

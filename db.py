@@ -7,7 +7,7 @@ def get_db_connection():
         g.db_conn = psycopg2.connect(current_app.config['DATABASE_URL'])
     return g.db_conn
 
-def execute_query(query, params=None, fetch_one=False, commit=False):
+def execute_query(query, params=None, fetch_one=False, fetch_all=False, commit=False):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
