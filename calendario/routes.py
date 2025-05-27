@@ -298,13 +298,13 @@ def delete_festivo(festivo_id):
 
         return jsonify({"message": f"Día festivo con ID {festivo_id} eliminado correctamente."}), 200
 
-    # except Exception as e:
-    #     return jsonify({"message": f"Error al eliminar el día festivo: {str(e)}"}), 500
     except Exception as e:
-    
-        traceback_str = traceback.format_exc()
-        print(traceback_str)  # Esto se verá en la consola de Flask
         return jsonify({"message": f"Error al eliminar el día festivo: {str(e)}"}), 500
+    # except Exception as e:
+    
+    #     traceback_str = traceback.format_exc()
+    #     print(traceback_str)  
+    #     return jsonify({"message": f"Error al eliminar el día festivo: {str(e)}"}), 500
 
 
 
@@ -458,28 +458,28 @@ def get_rol_by_id(rol_id):
         return jsonify({"message": f"Error al obtener el rol: {str(e)}"}), 500
 
 #centros
-@centros_bp.route('/api/centros/<int:centro_id>', methods=['GET'])
-def get_centro_by_id(centro_id):
-    """
-    Obtiene un centro de trabajo específico por su ID.
-    """
-    try:
-        query = "SELECT id, nombre, ubicacion FROM centros_trabajo WHERE id = %s;"
-        centro = execute_query(query, (centro_id,), fetch_one=True)
+# @centros_bp.route('/api/centros/<int:centro_id>', methods=['GET'])
+# def get_centro_by_id(centro_id):
+#     """
+#     Obtiene un centro de trabajo específico por su ID.
+#     """
+#     try:
+#         query = "SELECT id, nombre, ubicacion FROM centros_trabajo WHERE id = %s;"
+#         centro = execute_query(query, (centro_id,), fetch_one=True)
 
-        if not centro:
-            return jsonify({"message": f"El centro con ID {centro_id} no existe."}), 404
+#         if not centro:
+#             return jsonify({"message": f"El centro con ID {centro_id} no existe."}), 404
 
-        centro_data = {
-            "id": centro[0],
-            "nombre": centro[1],
-            "ubicacion": centro[2]
-        }
+#         centro_data = {
+#             "id": centro[0],
+#             "nombre": centro[1],
+#             "ubicacion": centro[2]
+#         }
 
-        return jsonify(centro_data), 200
+#         return jsonify(centro_data), 200
 
-    except Exception as e:
-        return jsonify({"message": f"Error al obtener el centro: {str(e)}"}), 500
+#     except Exception as e:
+#         return jsonify({"message": f"Error al obtener el centro: {str(e)}"}), 500
     
 # Centros de trabajo endpoints    
 @centros_bp.route('/api/centros', methods=['GET'])

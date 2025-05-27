@@ -85,6 +85,8 @@ def create_empleado():
         data = request.get_json()
         if not data:
             return jsonify({"message": "Datos JSON no proporcionados"}), 400
+        
+        print("Datos recibidos:", data)
 
         nombre_completo = data.get('nombre_completo')
         email = data.get('email')
@@ -131,6 +133,18 @@ def create_empleado():
             VALUES (%s, %s, %s, %s);
         """
         execute_query(insert_empleado, (new_user_id, jornada_semanal, jornada_anual, dias_vacaciones), commit=True)
+
+        horarios = data.get('horarios', [])
+        insert_horario = """
+            INSERT INTO horarios_empleado (empleado_id, dia_semana, hora_entrada, hora_salida)
+            VALUES (%s, %s, %s, %s);
+        """
+        for horario in horarios:
+            execute_query(
+                insert_horario,
+                (new_user_id, horario['dia_semana'], horario['hora_entrada'], horario['hora_salida']),
+                commit=True
+            )
 
         return jsonify({"message": "Empleado creado exitosamente", "usuario_id": new_user_id}), 201
 

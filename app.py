@@ -23,7 +23,7 @@ def close_db_connection(exception):
 from empleados.routes import empleados_bp
 from calendario.routes import calendario_bp
 from calendario.routes import festivos_bp
-from recursos.routes import recursos_bp
+# from recursos.routes import recursos_bp
 from calendario.horarios_routes import horarios_bp
 from calendario.routes import roles_bp
 from calendario.routes import centros_bp
@@ -31,7 +31,7 @@ from calendario.routes import centros_bp
 app.register_blueprint(empleados_bp)
 app.register_blueprint(calendario_bp)
 app.register_blueprint(festivos_bp)
-app.register_blueprint(recursos_bp)
+# app.register_blueprint(recursos_bp)
 app.register_blueprint(horarios_bp)
 app.register_blueprint(roles_bp)
 app.register_blueprint(centros_bp)
