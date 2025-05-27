@@ -119,30 +119,42 @@ def permiso_requerido(f):
 
 # Add a test route to verify authentication
 @auth_bp.route('/api/test-auth', methods=['GET'])
-@jwt_required()
+# Removed @jwt_required() decorator to make this route public
 def test_auth():
     """
     Endpoint de prueba para verificar que la autenticación funciona
     
-    Requiere: access_token válido en el header Authorization
-    Devuelve: datos del usuario autenticado
+    Ya no requiere token - es una ruta pública
     """
-    # Get the user ID from the token
-    user_id = get_jwt_identity()
+    # Get the token from the header if present (but don't require it)
+    auth_header = request.headers.get('Authorization')
+    user_info = {"mensaje": "Ruta pública - no requiere autenticación"}
     
-    # Look up the user in our mock database
-    from mock_users import get_user_by_id
-    usuario = get_user_by_id(int(user_id))
+    # If token is provided, try to get user info, but don't fail if no token
+    if auth_header and auth_header.startswith('Bearer '):
+        token = auth_header.split(' ')[1]
+        try:
+            # Try to decode the token
+            from flask_jwt_extended import decode_token
+            decoded = decode_token(token)
+            user_id = decoded['sub']
+            
+            # Look up the user in our mock database
+            from mock_users import get_user_by_id
+            usuario = get_user_by_id(int(user_id))
+            
+            if usuario:
+                user_info = {
+                    "mensaje": "Token válido detectado",
+                    "usuario": {
+                        "id": usuario['id'],
+                        "email": usuario['email'],
+                        "nombre": usuario['nombre_completo'],
+                        "rol": usuario['rol']
+                    }
+                }
+        except:
+            # If token is invalid, just ignore it
+            pass
     
-    if not usuario:
-        return jsonify({"mensaje": "Usuario no encontrado"}), 404
-    
-    return jsonify({
-        "mensaje": "Autenticación exitosa",
-        "usuario": {
-            "id": usuario['id'],
-            "email": usuario['email'],
-            "nombre": usuario['nombre_completo'],
-            "rol": usuario['rol']
-        }
-    }), 200
+    return jsonify(user_info), 200
