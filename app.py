@@ -27,15 +27,15 @@ def close_db_connection(exception):
         db_conn.close()
 
 # Importa y registra blueprints
-from empleados.routes import empleados_bp
-from calendario.routes import calendario_bp
-from calendario.routes import festivos_bp
-from calendario.horarios_routes import horarios_bp
-from calendario.routes import roles_bp
-from calendario.routes import centros_bp
+from routes.empleados_routes import empleados_bp
+from routes.routes import calendario_bp
+from routes.routes import festivos_bp
+from routes.horarios_routes import horarios_bp
+from routes.routes import roles_bp
+from routes.routes import centros_bp
 from auth import auth_bp  # Importar el blueprint de autenticación
-from calendario.vacaciones_routes import vacaciones_bp
-from calendario.routes import tipos_festivo_bp 
+from routes.vacaciones_routes import vacaciones_bp
+from routes.routes import tipos_festivo_bp 
 
 
 app.register_blueprint(empleados_bp)
