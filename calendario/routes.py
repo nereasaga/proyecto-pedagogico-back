@@ -8,6 +8,7 @@ calendario_bp = Blueprint('calendario_bp', __name__)
 festivos_bp = Blueprint('festivos_bp', __name__)
 roles_bp = Blueprint('roles_bp', __name__)
 centros_bp = Blueprint('centros_bp', __name__)
+tipos_festivo_bp = Blueprint('tipos_festivo_bp', __name__)
 
 @calendario_bp.route('/api/calendario/<int:usuario_id>', methods=['GET'])
 def get_calendario_empleado(usuario_id):
@@ -637,4 +638,26 @@ def delete_centro(centro_id):
     except Exception as e:
         return jsonify({"message": f"Error al eliminar centro de trabajo: {str(e)}"}), 500
     
-    
+ #tipos de festivo
+@tipos_festivo_bp.route('/api/tipos-festivo', methods=['GET'])
+def get_tipos_festivo():
+    """
+    Obtiene todos los tipos de festivo de la base de datos.
+    """
+    try:
+        # SQL query to select id and nombre from the tipos_festivo table
+        query = "SELECT id, nombre FROM tipos_festivo;"
+        
+        # results = [(1, 'Nacional'), (2, 'Autonómico'), (3, 'Local')] 
+        results = execute_query(query) 
+
+        if not results:
+            return jsonify({"message": "No se encontraron tipos de festivo."}), 404
+
+        # Format the results into a list of dictionaries
+        tipos_festivo_list = [{"id": r[0], "nombre": r[1]} for r in results]
+        
+        return jsonify(tipos_festivo_list), 200
+
+    except Exception as e:
+        return jsonify({"message": f"Error al obtener los tipos de festivo: {str(e)}"}), 500    
