@@ -1,52 +1,40 @@
---Crear la base de datos
---CREATE DATABASE "employeeCalendar";
---entrar en la base de datos
---\c "employeeCalendar"
+--
+-- PostgreSQL database
+--
 
--- Crear tabla centro_trabajo
+-- Crear la base de datos (opcional si ya existe)
+--CREATE DATABASE proyecto_pedagogico WITH ENCODING = 'UTF8' LOCALE = 'es_ES.UTF-8';
+
+-- Conectarse a la base
+--\connect proyecto_pedagogico;
+
+-- Tablas y secuencias principales
+
 CREATE TABLE centros_trabajo (
     id SERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL UNIQUE,
+    nombre VARCHAR(100) UNIQUE NOT NULL,
     ubicacion VARCHAR(255)
 );
 
-INSERT INTO centros_trabajo (nombre, ubicacion) VALUES
-('Barcelona', 'Av. del Bogatell, 82, Sant Martí, 08005, Barcelona'),
-('Madrid', 'C. Fernando Poo, 25, Arganzuela, 28045, Madrid'),
-('Málaga', 'C. dos Aceras, 23, 25, 29012, Arrabal-Málaga');
-
-
--- Crear tabla role
 CREATE TABLE roles (
     id SERIAL PRIMARY KEY,
-    nombre VARCHAR(50) NOT NULL UNIQUE
+    nombre VARCHAR(50) UNIQUE NOT NULL
 );
 
-INSERT INTO roles (nombre) VALUES
-('Administrador'),
-('Responsable de Área'),
-('Empleado');
+CREATE TABLE tipos_festivo (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(50) UNIQUE NOT NULL
+);
 
--- Crear tabla usuarios
 CREATE TABLE usuarios (
     id SERIAL PRIMARY KEY,
     nombre_completo VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     rol_id INTEGER NOT NULL REFERENCES roles(id),
     centro_id INTEGER REFERENCES centros_trabajo(id)
 );
 
--- Suponiendo que los roles y centros ya están insertados
-INSERT INTO usuarios (nombre_completo, email, password_hash, rol_id, centro_id) VALUES
-('Admin General', 'admin@empresa.com', 'hashed_password_admin', (SELECT id FROM roles WHERE nombre = 'Administrador'), NULL),
-('Responsable Barcelona', 'resp.barcelona@empresa.com', 'hashed_password_resp_bcn', (SELECT id FROM roles WHERE nombre = 'Responsable de Área'), (SELECT id FROM centros_trabajo WHERE nombre = 'Barcelona')),
-('Responsable Madrid', 'resp.madrid@empresa.com', 'hashed_password_resp_mad', (SELECT id FROM roles WHERE nombre = 'Responsable de Área'), (SELECT id FROM centros_trabajo WHERE nombre = 'Madrid')),
-('Empleado Juan Pérez', 'juan.perez@empresa.com', 'hashed_password_juan', (SELECT id FROM roles WHERE nombre = 'Empleado'), (SELECT id FROM centros_trabajo WHERE nombre = 'Barcelona')),
-('Empleado Ana García', 'ana.garcia@empresa.com', 'hashed_password_ana', (SELECT id FROM roles WHERE nombre = 'Empleado'), (SELECT id FROM centros_trabajo WHERE nombre = 'Madrid'));
-
-
--- Crear tabla empleados
 CREATE TABLE empleados (
     id SERIAL PRIMARY KEY,
     usuario_id INTEGER NOT NULL UNIQUE REFERENCES usuarios(id),
@@ -55,83 +43,22 @@ CREATE TABLE empleados (
     dias_vacaciones_asignados INTEGER NOT NULL
 );
 
--- Suponiendo que los usuarios ya están insertados
-INSERT INTO empleados (usuario_id, jornada_semanal_horas, jornada_anual_horas, dias_vacaciones_asignados) VALUES
-((SELECT id FROM usuarios WHERE email = 'juan.perez@empresa.com'), 40.00, 1780.00, 22),
-((SELECT id FROM usuarios WHERE email = 'ana.garcia@empresa.com'), 35.00, 1560.00, 20);
-
---Crear tabla horarios_empleados
-CREATE TABLE horarios_empleado (
-    id SERIAL PRIMARY KEY,
-    empleado_id INTEGER NOT NULL REFERENCES empleados(id),
-    dia_semana INTEGER NOT NULL CHECK (dia_semana BETWEEN 1 AND 7), -- 1=Lunes, 7=Domingo
-    hora_entrada TIME NOT NULL,
-    hora_salida TIME NOT NULL
-);
-
--- Horario para Juan Pérez (ID de usuario de Juan Pérez)
-INSERT INTO horarios_empleado (empleado_id, dia_semana, hora_entrada, hora_salida) VALUES
-((SELECT id FROM empleados WHERE usuario_id = (SELECT id FROM usuarios WHERE email = 'juan.perez@empresa.com')), 1, '09:00:00', '18:00:00'), -- Lunes
-((SELECT id FROM empleados WHERE usuario_id = (SELECT id FROM usuarios WHERE email = 'juan.perez@empresa.com')), 2, '09:00:00', '18:00:00'), -- Martes
-((SELECT id FROM empleados WHERE usuario_id = (SELECT id FROM usuarios WHERE email = 'juan.perez@empresa.com')), 3, '09:00:00', '18:00:00'), -- Miércoles
-((SELECT id FROM empleados WHERE usuario_id = (SELECT id FROM usuarios WHERE email = 'juan.perez@empresa.com')), 4, '09:00:00', '18:00:00'), -- Jueves
-((SELECT id FROM empleados WHERE usuario_id = (SELECT id FROM usuarios WHERE email = 'juan.perez@empresa.com')), 5, '09:00:00', '14:00:00'); -- Viernes (media jornada)
-
--- Horario para Ana García (ID de usuario de Ana García)
-INSERT INTO horarios_empleado (empleado_id, dia_semana, hora_entrada, hora_salida) VALUES
-((SELECT id FROM empleados WHERE usuario_id = (SELECT id FROM usuarios WHERE email = 'ana.garcia@empresa.com')), 1, '09:00:00', '17:00:00'),
-((SELECT id FROM empleados WHERE usuario_id = (SELECT id FROM usuarios WHERE email = 'ana.garcia@empresa.com')), 2, '09:00:00', '17:00:00'),
-((SELECT id FROM empleados WHERE usuario_id = (SELECT id FROM usuarios WHERE email = 'ana.garcia@empresa.com')), 3, '09:00:00', '17:00:00'),
-((SELECT id FROM empleados WHERE usuario_id = (SELECT id FROM usuarios WHERE email = 'ana.garcia@empresa.com')), 4, '09:00:00', '17:00:00'),
-((SELECT id FROM empleados WHERE usuario_id = (SELECT id FROM usuarios WHERE email = 'ana.garcia@empresa.com')), 5, '09:00:00', '14:00:00');
-
---Crear tablas tipos_festivos
-CREATE TABLE tipos_festivo (
-    id SERIAL PRIMARY KEY,
-    nombre VARCHAR(50) NOT NULL UNIQUE
-);
-
-INSERT INTO tipos_festivo (nombre) VALUES
-('Estatal'),
-('Autonómico'),
-('Local'),
-('Propio de la Entidad');
-
---Crear tabla festivos
 CREATE TABLE festivos (
     id SERIAL PRIMARY KEY,
     fecha DATE NOT NULL,
     descripcion VARCHAR(255) NOT NULL,
     tipo_festivo_id INTEGER NOT NULL REFERENCES tipos_festivo(id),
-    centro_id INTEGER REFERENCES centros_trabajo(id) -- NULL para festivos estatales
+    centro_id INTEGER REFERENCES centros_trabajo(id)
 );
 
--- Suponiendo que los tipos de festivo y centros ya están insertados
-INSERT INTO festivos (fecha, descripcion, tipo_festivo_id, centro_id) VALUES
--- Festivos estatales
-('2025-01-01', 'Año Nuevo', (SELECT id FROM tipos_festivo WHERE nombre = 'Estatal'), NULL),
-('2025-01-06', 'Día de Reyes', (SELECT id FROM tipos_festivo WHERE nombre = 'Estatal'), NULL),
-('2025-10-12', 'Fiesta Nacional de España', (SELECT id FROM tipos_festivo WHERE nombre = 'Estatal'), NULL),
+CREATE TABLE horarios_empleado (
+    id SERIAL PRIMARY KEY,
+    empleado_id INTEGER NOT NULL REFERENCES empleados(id),
+    dia_semana INTEGER NOT NULL CHECK (dia_semana BETWEEN 1 AND 7),
+    hora_entrada TIME NOT NULL,
+    hora_salida TIME NOT NULL
+);
 
--- Festivos autonómicos (ej. Cataluña, para Barcelona)
-('2025-06-24', 'San Juan', (SELECT id FROM tipos_festivo WHERE nombre = 'Autonómico'), (SELECT id FROM centros_trabajo WHERE nombre = 'Barcelona')),
-('2025-09-11', 'Diada Nacional de Catalunya', (SELECT id FROM tipos_festivo WHERE nombre = 'Autonómico'), (SELECT id FROM centros_trabajo WHERE nombre = 'Barcelona')),
-
--- Festivos locales (ej. Barcelona)
-('2025-09-24', 'La Mercè', (SELECT id FROM tipos_festivo WHERE nombre = 'Local'), (SELECT id FROM centros_trabajo WHERE nombre = 'Barcelona')),
-
--- Festivos autonómicos (ej. Comunidad de Madrid, para Madrid)
-('2025-05-02', 'Día de la Comunidad de Madrid', (SELECT id FROM tipos_festivo WHERE nombre = 'Autonómico'), (SELECT id FROM centros_trabajo WHERE nombre = 'Madrid')),
-('2025-05-15', 'San Isidro Labrador', (SELECT id FROM tipos_festivo WHERE nombre = 'Local'), (SELECT id FROM centros_trabajo WHERE nombre = 'Madrid')),
-
--- Días de descanso propios de la entidad (ej. "Día Tomillo")
-('2025-12-23', 'Día Tomillo', (SELECT id FROM tipos_festivo WHERE nombre = 'Propio de la Entidad'), NULL); -- Podría ser global o por centro
-
-INSERT INTO usuarios (nombre_completo, email, password_hash, rol_id, centro_id) VALUES
-('Admin General', 'admin@empresa.com', 'hashed_password_admin', (SELECT id FROM roles WHERE nombre = 'Administrador'), NULL),
-('Empleado Juan Pérez', 'juan.perez@empresa.com', 'hashed_password_juan', (SELECT id FROM roles WHERE nombre = 'Empleado'), (SELECT id FROM centros_trabajo WHERE nombre = 'Barcelona')),
-
---Crear tabla vacaciones_empleado
 CREATE TABLE vacaciones_empleado (
     id SERIAL PRIMARY KEY,
     empleado_id INTEGER NOT NULL REFERENCES empleados(id),
@@ -141,8 +68,104 @@ CREATE TABLE vacaciones_empleado (
     aprobada BOOLEAN DEFAULT FALSE
 );
 
--- Vacaciones de ejemplo para Juan Pérez
-INSERT INTO vacaciones_empleado (empleado_id, fecha_inicio, fecha_fin, dias_solicitados, aprobada) VALUES
-((SELECT id FROM empleados WHERE usuario_id = (SELECT id FROM usuarios WHERE email = 'juan.perez@empresa.com')), '2025-07-14', '2025-07-25', 10, TRUE),
-((SELECT id FROM empleados WHERE usuario_id = (SELECT id FROM usuarios WHERE email = 'juan.perez@empresa.com')), '2025-12-26', '2025-12-31', 3, FALSE);
+-- INSERCIÓN DE DATOS
+-- Tabla centros_trabajo
 
+INSERT INTO public.centros_trabajo (id, nombre, ubicacion) VALUES
+(1, 'Barcelona', 'Av. del Bogatell, 82, Sant Martí, 08005, Barcelona'),
+(2, 'Madrid', 'C. Fernando Poo, 25, Arganzuela, 28045, Madrid');
+
+
+-- Tabla  roles
+
+INSERT INTO public.roles (id, nombre) VALUES
+(1, 'Administrador'),
+(2, 'Responsable de Área'),
+(3, 'Empleado');
+
+
+-- Tabla tipos_festivo
+
+INSERT INTO public.tipos_festivo (id, nombre) VALUES
+(1, 'Estatal'),
+(2, 'Autonómico'),
+(3, 'Local'),
+(4, 'Propio de la Entidad');
+
+-- Tabla usuarios
+
+INSERT INTO usuarios (id, nombre_completo, email, password_hash, rol_id, centro_id) VALUES
+(1, 'Admin General', 'admin@empresa.com', 'hashed_password_admin', 1, NULL),
+(2, 'Responsable Barcelona', 'resp.barcelona@empresa.com', 'hashed_password_resp_bcn', 2, 1),
+(3, 'Responsable Madrid', 'resp.madrid@empresa.com', 'hashed_password_resp_mad', 2, 2),
+(4, 'kiki', 'kiki@ki.com', '1234', 2, 2),
+(5, 'ELisa Domenech', 'elidomenech@gmail.com', '$2b$12$lTEtGyqw2.9rmkQG94xCdu6II8h1hd3gj9AoNFPhuTKdk.iJGZf72', 3, 2),
+(6, 'Belen Adria Mateu', 'belenadria@gmail.com', '$2b$12$rNukG4ShEN/stz8rk7iCQOXVIwBcxVMWEkvlGgOgzI1VyGoIG8zY.', 3, 1),
+(7, 'Juan Pérez', 'juan.perez@empresa.com', 'hashed_password_juan', 3, 1),
+(8, 'Ana García', 'ana.garcia@empresa.com', 'hashed_password_ana', 3, 2);
+
+
+-- Tabla empleados
+
+INSERT INTO empleados (id, usuario_id, jornada_semanal_horas, jornada_anual_horas, dias_vacaciones_asignados) VALUES
+(1, 5, 40.00, 1800.00, 21),
+(2, 6, 40.00, 1800.00, 21),
+(3, 7, 40.00, 1800.00, 21),
+(4, 8, 40.00, 1800.00, 21);
+
+
+
+-- Tabla festivos
+
+INSERT INTO festivos (id, fecha, descripcion, tipo_festivo_id, centro_id) VALUES
+(1, '2025-01-01', 'Año Nuevo', 1, NULL),
+(2, '2025-01-06', 'Día de Reyes', 1, NULL),
+(3, '2025-10-12', 'Fiesta Nacional de España', 1, NULL),
+(4, '2025-06-24', 'San Juan', 2, 1),
+(5, '2025-09-11', 'Diada Nacional de Catalunya', 2, 1),
+(6, '2025-09-24', 'La Mercè', 3, 1),
+(7, '2025-05-02', 'Día de la Comunidad de Madrid', 2, 2),
+(8, '2025-05-15', 'San Isidro Labrador', 3, 2),
+(9, '2025-12-23', 'Día Tomillo', 4, NULL),
+(10, '2025-04-23', 'San Jordi', 1, 1);
+
+
+-- Tabla horarios_empleado
+
+INSERT INTO horarios_empleado (empleado_id, dia_semana, hora_entrada, hora_salida) VALUES
+-- Empleado 1
+(1, 1, '08:30:00', '16:30:00'),
+(1, 2, '09:00:00', '18:00:00'),
+(1, 3, '09:00:00', '18:00:00'),
+(1, 4, '09:00:00', '18:00:00'),
+(1, 5, '09:00:00', '14:00:00'),
+
+-- Empleado 2
+(2, 1, '09:00:00', '17:00:00'),
+(2, 2, '09:00:00', '17:00:00'),
+(2, 3, '09:00:00', '17:00:00'),
+(2, 4, '09:00:00', '17:00:00'),
+(2, 5, '09:00:00', '14:00:00'),
+
+-- Empleado 3
+(3, 1, '09:00:00', '16:00:00'),
+(3, 2, '09:00:00', '16:00:00'),
+(3, 3, '09:00:00', '16:00:00'),
+(3, 4, '09:00:00', '16:00:00'),
+(3, 5, '09:00:00', '14:00:00'),
+
+-- Empleado 4
+(4, 1, '06:00:00', '18:00:00'),
+(4, 2, '06:00:00', '18:00:00'),
+(4, 3, '09:00:00', '18:00:00'),
+(4, 4, '09:00:00', '18:00:00'),
+(4, 5, '09:00:00', '14:00:00');
+
+
+--Tabla vacaciones_empleado
+
+INSERT INTO vacaciones_empleado (empleado_id, fecha_inicio, fecha_fin, dias_solicitados, aprobada) VALUES
+(1, '2025-07-01', '2025-07-10', 10, true),
+(2, '2025-06-10', '2025-06-15', 5, true),
+(1, '2025-05-28', '2025-05-29', 2, false),
+(4, '2025-05-29', '2025-05-29', 1, true);
