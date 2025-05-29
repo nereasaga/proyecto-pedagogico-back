@@ -122,6 +122,12 @@ proyecto-pedagogico-back/
 - **Responsable de Área**: Gestión de empleados y calendarios de su centro
 - **Empleado**: Visualización de su propio calendario y solicitud de vacaciones
 
+## Ejemplo base de datos
+
+├── data/                   # Datos y scripts SQL
+│   └── employeeCalendar.sqlcceso completo a todas las funcionalidades
+Script SQL para crear la base de datos y poblarla con datos de prueba
+
 ## Licencia
 
 Este proyecto está licenciado bajo [MIT License](LICENSE).
