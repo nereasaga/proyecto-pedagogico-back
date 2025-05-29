@@ -3,7 +3,7 @@
 --
 
 -- Crear la base de datos (opcional si ya existe)
---CREATE DATABASE "proyecto-pedagogico" ENCODING 'UTF8' LC_COLLATE 'es_ES.UTF-8' LC_CTYPE 'es_ES.UTF-8' TEMPLATE template0;  
+--CREATE DATABASE "proyecto_pedagogico" ENCODING 'UTF8' LC_COLLATE 'es_ES.UTF-8' LC_CTYPE 'es_ES.UTF-8' TEMPLATE template0;  
 
 -- Conectarse a la base
 --\connect proyecto_pedagogico;
