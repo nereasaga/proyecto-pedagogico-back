@@ -3,7 +3,7 @@
 --
 
 -- Crear la base de datos (opcional si ya existe)
---CREATE DATABASE proyecto_pedagogico WITH ENCODING = 'UTF8' LOCALE = 'es_ES.UTF-8';
+--CREATE DATABASE "eproyecto-pegagico" ENCODING 'UTF8' LC_COLLATE 'es_ES.UTF-8' LC_CTYPE 'es_ES.UTF-8' TEMPLATE template0; 
 
 -- Conectarse a la base
 --\connect proyecto_pedagogico;
