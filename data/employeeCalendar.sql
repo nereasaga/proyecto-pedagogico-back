@@ -98,7 +98,7 @@ INSERT INTO usuarios (id, nombre_completo, email, password_hash, rol_id, centro_
 (1, 'Admin General', 'admin@empresa.com', 'hashed_password_admin', 1, NULL),
 (2, 'Responsable Barcelona', 'resp.barcelona@empresa.com', 'hashed_password_resp_bcn', 2, 1),
 (3, 'Responsable Madrid', 'resp.madrid@empresa.com', 'hashed_password_resp_mad', 2, 2),
-(4, 'kiki', 'kiki@ki.com', '1234', 2, 2),
+(4, 'Leonor Ramirez', 'leoramirez@gmail.com', '1234', 2, 2),
 (5, 'ELisa Domenech', 'elidomenech@gmail.com', '$2b$12$lTEtGyqw2.9rmkQG94xCdu6II8h1hd3gj9AoNFPhuTKdk.iJGZf72', 3, 2),
 (6, 'Belen Adria Mateu', 'belenadria@gmail.com', '$2b$12$rNukG4ShEN/stz8rk7iCQOXVIwBcxVMWEkvlGgOgzI1VyGoIG8zY.', 3, 1),
 (7, 'Juan Pérez', 'juan.perez@empresa.com', 'hashed_password_juan', 3, 1),
