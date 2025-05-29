@@ -64,22 +64,21 @@ La API estará disponible en http://localhost:5000
 
 ```
 proyecto-pedagogico-back/
-├── app.py                  # Punto de entrada de la aplicación
-├── config.py               # Configuración de la aplicación
-├── auth.py                 # Sistema de autenticación
-├── mock_users.py           # Usuarios de prueba
-├── middleware.py           # Middlewares de la aplicación
-├── db.py                   # Conexión a base de datos
-├── empleados/              # Módulo de empleados
-│   └── routes.py
 ├── calendario/             # Módulo de calendario
 │   ├── routes.py
 │   ├── horarios_routes.py
 │   └── vacaciones_routes.py
-├── templates/              # Plantillas HTML
-│   └── index.html
 ├── data/                   # Datos y scripts SQL
 │   └── employeeCalendar.sql
+├── empleados/              # Módulo de empleados
+│   └── routes.py
+├── templates/              # Plantillas HTML
+│   └── index.html
+├── app.py                  # Punto de entrada de la aplicación
+├── config.py               # Configuración de la aplicación
+├── auth.py                 # Sistema de autenticación
+├── db.py                   # Conexión a base de datos
+├── readme.md                   # Conexión a base de datos
 └── requirements.txt        # Dependencias
 ```
 
