@@ -7,12 +7,12 @@ from flask_jwt_extended import (
     get_jwt,
     current_user
 )
-from db import execute_query
+from mock_users import get_user_by_email
 from functools import wraps
 
 auth_bp = Blueprint('auth_bp', __name__)
 
-# Ruta de login para obtener tokens
+# Ruta de login para obtener tokens 
 @auth_bp.route('/api/login', methods=['POST'])
 def login():
     """
@@ -32,42 +32,27 @@ def login():
         return jsonify({"mensaje": "Email y contraseña son requeridos"}), 400
     
     try:
-        # Consulta para obtener usuario y su rol
-        query = """
-            SELECT 
-                u.id, 
-                u.password_hash, 
-                r.nombre AS rol,
-                u.nombre_completo,
-                u.centro_id
-            FROM usuarios u
-            JOIN roles r ON u.rol_id = r.id
-            WHERE u.email = %s;
-        """
-        usuario = execute_query(query, (email,), fetch_one=True)
+        # Obtener usuario de nuestros datos mock
+        usuario = get_user_by_email(email)
         
         # Verificar si el usuario existe y la contraseña es correcta
-        if not usuario or usuario[1] != password:  # En producción usar verificación de hash
+        if not usuario or usuario['password'] != password:
             return jsonify({"mensaje": "Email o contraseña incorrectos"}), 401
         
-        # Crear identity con datos del usuario
-        identity = {
-            'id': usuario[0],
-            'rol': usuario[2],
-            'nombre': usuario[3],
-            'centro_id': usuario[4]
-        }
+        # Usar el ID del usuario como subject (string)
+        user_id = str(usuario['id'])
         
-        # Crear tokens
-        access_token = create_access_token(identity=identity)
-        refresh_token = create_refresh_token(identity=identity)
+        # Crear tokens con el ID como subject
+        access_token = create_access_token(identity=user_id)
+        refresh_token = create_refresh_token(identity=user_id)
         
+        # Incluir datos adicionales en la respuesta
         return jsonify({
             "access_token": access_token,
             "refresh_token": refresh_token,
-            "usuario_id": usuario[0],
-            "rol": usuario[2],
-            "nombre": usuario[3]
+            "usuario_id": usuario['id'],
+            "rol": usuario['rol'],
+            "nombre": usuario['nombre_completo']
         }), 200
         
     except Exception as e:
@@ -131,3 +116,45 @@ def permiso_requerido(f):
             
         return f(*args, **kwargs)
     return decorated_function
+
+# Add a test route to verify authentication 
+@auth_bp.route('/api/test-auth', methods=['GET'])
+# Removed @jwt_required() decorator to make this route public que no esta protegido
+def test_auth():
+    """
+    Endpoint de prueba para verificar que la autenticación funciona
+    
+    Ya no requiere token - es una ruta pública
+    """
+    # Get the token from the header if present (but don't require it)
+    auth_header = request.headers.get('Authorization')
+    user_info = {"mensaje": "Ruta pública - no requiere autenticación"}
+    
+    # If token is provided, try to get user info, but don't fail if no token
+    if auth_header and auth_header.startswith('Bearer '):
+        token = auth_header.split(' ')[1]
+        try:
+            # Try to decode the token
+            from flask_jwt_extended import decode_token
+            decoded = decode_token(token)
+            user_id = decoded['sub']
+            
+            # Look up the user in our mock database
+            from mock_users import get_user_by_id
+            usuario = get_user_by_id(int(user_id))
+            
+            if usuario:
+                user_info = {
+                    "mensaje": "Token válido detectado",
+                    "usuario": {
+                        "id": usuario['id'],
+                        "email": usuario['email'],
+                        "nombre": usuario['nombre_completo'],
+                        "rol": usuario['rol']
+                    }
+                }
+        except:
+            # If token is invalid, just ignore it
+            pass
+    
+    return jsonify(user_info), 200
